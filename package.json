@@ -4,14 +4,26 @@
   "description": "将 Notion 文章同步到微信公众号的桌面应用",
   "main": "out/main/index.js",
   "scripts": {
-    "dev": "vite",
-    "start": "npx electron .",
-    "dev:all": "concurrently \"npm run dev\" \"npm run start\"",
-    "build": "vite build",
+    "dev": "cross-env NODE_ENV=development vite",
+    "build": "vite build && electron-builder",
     "preview": "vite preview",
     "test": "jest",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.notion.wechat.sync",
+    "productName": "Notion to WeChat Sync",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    }
   },
   "keywords": [
     "notion",
@@ -22,6 +34,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@headlessui/react": "^2.2.2",
     "@notionhq/client": "^2.2.14",
     "axios": "^1.6.7",
     "electron": "^28.1.0",
@@ -30,6 +43,7 @@
     "vue": "latest"
   },
   "devDependencies": {
+    "@types/electron": "^1.6.10",
     "@types/node": "^20.17.30",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
@@ -39,7 +53,9 @@
     "@vitejs/plugin-vue": "^5.2.3",
     "autoprefixer": "^10.4.17",
     "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
     "electron-builder": "^24.9.1",
+    "electron-is-dev": "^2.0.0",
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",

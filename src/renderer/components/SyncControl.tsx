@@ -14,28 +14,21 @@ export const SyncControl: React.FC<SyncControlProps> = ({ article }) => {
 
   React.useEffect(() => {
     // 获取同步状态
-    window.electron.ipcRenderer.invoke('getSyncState', article.id).then((state: SyncState) => {
+    window.electron.getSyncStatus(article.id).then((state: SyncState) => {
       setSyncState(state);
     });
 
     // 监听同步状态更新
-    const unsubscribe = window.electron.ipcRenderer.on(
-      'syncStateChanged',
-      (state: SyncState) => {
-        if (state.articleId === article.id) {
-          setSyncState(state);
-        }
+    window.electron.onSyncStateChanged((state: SyncState) => {
+      if (state.articleId === article.id) {
+        setSyncState(state);
       }
-    );
-
-    return () => {
-      unsubscribe();
-    };
+    });
   }, [article.id]);
 
   const handleSync = async () => {
     try {
-      await window.electron.ipcRenderer.invoke('syncArticle', article.id);
+      await window.electron.syncArticle(article.id);
     } catch (error) {
       console.error('同步失败:', error);
     }

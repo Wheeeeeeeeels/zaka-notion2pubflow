@@ -10,17 +10,37 @@ const root = resolve(__dirname);
 export default defineConfig({
   plugins: [
     vue(),
-    electron({
-      entry: resolve(root, 'src/main/index.ts'),
-      vite: {
-        build: {
-          outDir: 'out/main',
-          rollupOptions: {
-            external: ['electron', 'fs']
+    electron([
+      {
+        // Main process
+        entry: resolve(root, 'src/main/index.ts'),
+        onstart(options) {
+          options.startup();
+        },
+        vite: {
+          build: {
+            outDir: resolve(root, 'out/main'),
+            minify: false,
+            rollupOptions: {
+              external: ['electron', 'fs']
+            }
+          }
+        }
+      },
+      {
+        // Preload script
+        entry: resolve(root, 'src/preload/index.ts'),
+        onstart(options) {
+          options.reload();
+        },
+        vite: {
+          build: {
+            outDir: resolve(root, 'out/preload'),
+            minify: false
           }
         }
       }
-    }),
+    ]),
     renderer()
   ],
   root: resolve(root, 'src/renderer'),

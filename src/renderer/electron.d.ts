@@ -1,18 +1,24 @@
 import { NotionPage, NotionBlock, NotionConfig } from '../shared/types/notion';
 import { SyncState } from '../shared/types/sync';
+import { Config } from '../shared/types/config';
 
 declare global {
   interface Window {
     electron: {
       ipcRenderer: {
-        invoke(channel: 'getArticles'): Promise<NotionPage[]>;
-        invoke(channel: 'getPageContent', pageId: string): Promise<NotionBlock[]>;
-        invoke(channel: 'getSyncState', articleId: string): Promise<SyncState>;
-        invoke(channel: 'syncArticle', articleId: string): Promise<void>;
-        invoke(channel: 'getNotionConfig'): Promise<NotionConfig>;
-        invoke(channel: 'saveNotionConfig', config: NotionConfig): Promise<void>;
-        on(channel: 'syncStateChanged', callback: (state: SyncState) => void): () => void;
+        invoke(channel: string, ...args: any[]): Promise<any>;
+        on(channel: string, func: (...args: any[]) => void): void;
+        removeListener(channel: string, func: (...args: any[]) => void): void;
       };
+      getConfig(): Promise<Config>;
+      saveConfig(config: Config): Promise<boolean>;
+      getNotionPages(): Promise<any[]>;
+      syncArticle(pageId: string): Promise<any>;
+      getSyncStatus(articleId: string): Promise<any>;
+      onSyncStateChanged(callback: (state: any) => void): () => void;
+      showNotification(title: string, body: string): Promise<void>;
     };
   }
-} 
+}
+
+export {}; 

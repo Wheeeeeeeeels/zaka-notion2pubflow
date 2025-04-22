@@ -1,88 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import NotionConfig from './components/NotionConfig';
+import ConfigPanel from './components/ConfigPanel';
 import ArticleList from './components/ArticleList';
-import ArticlePreview from './components/ArticlePreview';
-import { NotionConfig as NotionConfigType, NotionPage } from '../shared/types/notion';
+import { NotionPage } from '../shared/types/notion';
 
 export const App: React.FC = () => {
-  const [notionConfig, setNotionConfig] = useState<NotionConfigType | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedArticle, setSelectedArticle] = useState<NotionPage | null>(null);
+  const [articles, setArticles] = useState<NotionPage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadNotionConfig();
-  }, []);
-
-  const loadNotionConfig = async () => {
+  const fetchArticles = async () => {
     try {
-      const config = await window.electron.ipcRenderer.invoke('getNotionConfig');
-      if (config) {
-        setNotionConfig(config);
-      }
+      return await window.electron.ipcRenderer.invoke('get-notion-pages');
     } catch (error) {
-      console.error('加载配置失败:', error);
+      console.error('获取文章列表失败:', error);
+      throw error;
+    }
+  };
+
+  const handleSync = async (pageId: string) => {
+    try {
+      setLoading(true);
+      await window.electron.ipcRenderer.invoke('sync-article', pageId);
+      // 重新加载文章列表
+      const updatedArticles = await fetchArticles();
+      setArticles(updatedArticles);
+      setError(null);
+    } catch (error) {
+      console.error('同步文章失败:', error);
+      setError('同步文章失败');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNotionConfigChange = async (config: NotionConfigType) => {
-    try {
-      await window.electron.ipcRenderer.invoke('saveNotionConfig', config);
-      setNotionConfig(config);
-    } catch (error) {
-      console.error('保存配置失败:', error);
-    }
+  const handleConfigSaved = () => {
+    console.log('配置已保存，重新加载文章列表');
+    // 重新加载文章列表
+    setLoading(true);
+    fetchArticles()
+      .then((articles) => {
+        setArticles(articles);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error('加载文章列表失败:', err);
+        setError('加载文章列表失败');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
-  const handleSelectArticle = (article: NotionPage) => {
-    setSelectedArticle(article);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">加载中...</p>
-        </div>
-      </div>
-    );
-  }
+  // 初始加载文章列表
+  useEffect(() => {
+    handleConfigSaved();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">Notion2PublicFlow</h1>
-        </div>
-      </header>
-      <main>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
-            {!notionConfig ? (
-              <NotionConfig onConfigChange={handleNotionConfigChange} />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">文章列表</h2>
-                  <ArticleList onSelectArticle={handleSelectArticle} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">文章预览</h2>
-                  {selectedArticle ? (
-                    <ArticlePreview article={selectedArticle} />
-                  ) : (
-                    <div className="bg-white p-6 rounded-lg shadow text-center text-gray-500">
-                      请选择一篇文章进行预览
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Notion 文章同步工具</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <ConfigPanel onConfigSaved={handleConfigSaved} />
+          </div>
+          
+          <div>
+            <ArticleList
+              articles={articles}
+              loading={loading}
+              error={error}
+              onSync={handleSync}
+            />
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }; 

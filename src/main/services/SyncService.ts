@@ -21,20 +21,31 @@ export class SyncService {
 
   async syncArticle(articleId: string): Promise<SyncState> {
     try {
+      console.log('开始同步文章:', articleId);
       this.updateSyncState(articleId, SyncStatus.SYNCING);
 
       // 获取 Notion 文章内容
+      console.log('正在获取文章属性...');
       const page = await this.notionService.getPageProperties(articleId);
+      console.log('文章属性:', page);
+
+      console.log('正在获取文章内容...');
       const blocks = await this.notionService.getPageContent(articleId);
+      console.log('文章内容块数量:', blocks.length);
 
       // 转换文章格式
+      console.log('正在转换文章格式...');
       const weChatArticle = this.convertToWeChatArticle(page, blocks);
+      console.log('转换后的文章:', weChatArticle);
 
       // 发布到微信公众号
+      console.log('正在发布到微信公众号...');
       await this.weChatService.publishArticle(weChatArticle);
+      console.log('文章发布成功');
 
       return this.updateSyncState(articleId, SyncStatus.SUCCESS);
     } catch (error) {
+      console.error('同步文章失败:', error);
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       return this.updateSyncState(articleId, SyncStatus.FAILED, errorMessage);
     }
