@@ -108,7 +108,10 @@ export function setupIpcHandlers(
     if (!notionService) {
       throw new Error('Notion 服务未初始化，请先设置 API Key 和数据库 ID');
     }
-    return notionService.getArticles();
+    console.log('正在获取 Notion 文章列表...');
+    const pages = await notionService.getArticles();
+    console.log('获取到文章数量:', pages.length);
+    return pages;
   });
 
   // 同步相关

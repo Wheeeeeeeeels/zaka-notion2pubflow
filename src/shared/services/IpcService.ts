@@ -55,8 +55,8 @@ export class IpcService {
   /**
    * 获取 Notion 页面列表
    */
-  static async getNotionPages(): Promise<NotionPage[]> {
-    return window.electron.ipcRenderer.invoke('get-notion-pages');
+  static async getNotionPages(): Promise<any[]> {
+    return window.electron.getNotionPages();
   }
 
   /**

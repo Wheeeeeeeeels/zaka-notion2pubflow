@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NotionPage } from '../../shared/types/notion';
 import { SyncState, SyncStatus } from '../../shared/types/sync';
 import { IpcService } from '../../shared/services/IpcService';
@@ -12,6 +12,27 @@ const ArticlePanel: React.FC = () => {
   const [selectedArticle, setSelectedArticle] = useState<NotionPage | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [syncStates, setSyncStates] = useState<Record<string, SyncState>>({});
+  const [articles, setArticles] = useState<NotionPage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadArticles();
+  }, []);
+
+  const loadArticles = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const pages = await IpcService.getNotionPages();
+      setArticles(pages);
+    } catch (err) {
+      console.error('加载文章失败:', err);
+      setError(err instanceof Error ? err.message : '加载文章失败');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectArticle = (article: NotionPage) => {
     setSelectedArticle(article);
@@ -40,6 +61,7 @@ const ArticlePanel: React.FC = () => {
       });
       setSelectedArticle(article);
       setIsEditing(false);
+      await loadArticles(); // 重新加载文章列表
     } catch (error) {
       console.error('保存文章失败:', error);
     }
@@ -60,6 +82,7 @@ const ArticlePanel: React.FC = () => {
           lastSyncTime: Date.now(),
         },
       }));
+      await loadArticles(); // 同步后重新加载文章列表
     } catch (error) {
       console.error('同步文章失败:', error);
       setSyncStates(prev => ({
@@ -76,8 +99,23 @@ const ArticlePanel: React.FC = () => {
 
   return (
     <div className="flex h-full">
-      <div className="w-1/3 border-r border-gray-200">
-        <ArticleList onSelectArticle={handleSelectArticle} />
+      <div className="w-1/3 border-r border-gray-200 p-4">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold">文章列表</h2>
+          <button
+            onClick={loadArticles}
+            className="mt-2 px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
+          >
+            刷新
+          </button>
+        </div>
+        <ArticleList
+          articles={articles}
+          loading={loading}
+          error={error}
+          onSync={handleSync}
+          syncStates={syncStates}
+        />
       </div>
       <div className="w-2/3 p-4">
         {selectedArticle ? (

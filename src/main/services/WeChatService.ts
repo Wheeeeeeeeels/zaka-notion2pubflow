@@ -13,26 +13,36 @@ export class WeChatService {
   async publishArticle(article: WeChatArticle): Promise<void> {
     try {
       console.log('开始发布文章到微信公众号...');
-      console.log('文章内容:', article);
+      console.log('文章内容:', JSON.stringify(article, null, 2));
 
       const accessToken = await this.getAccessToken();
-      console.log('获取到访问令牌');
+      console.log('获取到访问令牌:', accessToken);
 
-      // 获取默认封面图片的 media_id
-      console.log('正在上传默认封面图片...');
+      // 获取封面图片的 media_id
+      console.log('正在上传封面图片...');
       let thumbMediaId: string | null = null;
       let retryCount = 0;
       const maxRetries = 3;
 
       while (!thumbMediaId && retryCount < maxRetries) {
         try {
-          const defaultCoverUrl = `https://placehold.co/400x300/3b82f6/ffffff.png?text=${encodeURIComponent(article.title.slice(0, 20))}`;
-          thumbMediaId = await this.uploadImage(defaultCoverUrl);
+          // 使用 Unsplash 的随机图片
+          const unsplashUrl = `https://api.unsplash.com/photos/random?query=technology+minimal&orientation=landscape&client_id=WVH7UopVAW9CxpF3CSNDgbYMJLNO0qwRphkOBEDjtWY`;
+          console.log('正在获取 Unsplash 图片...');
+          const unsplashResponse = await axios.get(unsplashUrl);
+          const imageUrl = unsplashResponse.data.urls.regular;
+          console.log('获取到 Unsplash 图片:', imageUrl);
+
+          if (!imageUrl) {
+            throw new Error('无法获取 Unsplash 图片');
+          }
+
+          thumbMediaId = await this.uploadImage(imageUrl);
           console.log('获取到封面图片 media_id:', thumbMediaId);
 
-          // 立即使用上传的图片发布文章
-          const url = `${this.baseUrl}/draft/add?access_token=${accessToken}`;
-          console.log('请求URL:', url);
+          // 创建草稿
+          const draftUrl = `${this.baseUrl}/draft/add?access_token=${accessToken}`;
+          console.log('创建草稿，请求URL:', draftUrl);
 
           const articleData = {
             articles: [{
@@ -47,92 +57,33 @@ export class WeChatService {
             }]
           };
 
-          console.log('发送的数据:', articleData);
-          const response = await axios.post<WeChatResponse>(url, articleData);
-          console.log('微信接口响应:', response.data);
+          console.log('发送的草稿数据:', JSON.stringify(articleData, null, 2));
+          const draftResponse = await axios.post<WeChatResponse>(draftUrl, articleData);
+          console.log('创建草稿响应:', JSON.stringify(draftResponse.data, null, 2));
 
-          // 草稿箱接口返回 media_id 表示成功
-          if (response.data.media_id) {
-            const draftMediaId = response.data.media_id;
-            console.log('文章草稿创建成功，草稿media_id:', draftMediaId);
-            
-            // 等待2秒确保草稿保存完成
-            console.log('等待草稿保存完成...');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // 从草稿箱发布文章
-            console.log('正在从草稿箱发布文章...');
-            const publishUrl = `${this.baseUrl}/media/uploadnews?access_token=${accessToken}`;
-            
-            // 重新构建发布数据
-            const publishData = {
-              articles: [{
-                title: article.title,
-                thumb_media_id: thumbMediaId,
-                author: article.author || '匿名',
-                digest: article.digest || article.title,
-                content: article.content,
-                content_source_url: '',
-                need_open_comment: article.needOpenComment ? 1 : 0,
-                only_fans_can_comment: 0
-              }]
-            };
-            
-            const publishResponse = await axios.post<WeChatResponse>(publishUrl, publishData);
-            console.log('发布响应:', publishResponse.data);
-
-            if (publishResponse.data.type === 'news' && publishResponse.data.media_id) {
-              console.log('文章发布成功，新的media_id:', publishResponse.data.media_id);
-              
-              // 群发文章
-              console.log('正在群发文章...');
-              const massUrl = `${this.baseUrl}/message/mass/send?access_token=${accessToken}`;
-              const massData = {
-                filter: {
-                  is_to_all: true
-                },
-                mpnews: {
-                  media_id: publishResponse.data.media_id
-                },
-                msgtype: 'mpnews',
-                send_ignore_reprint: 0
-              };
-              
-              const massResponse = await axios.post<WeChatResponse>(massUrl, massData);
-              console.log('群发响应:', massResponse.data);
-              
-              if (massResponse.data.errcode === 0) {
-                console.log('文章已成功发布并群发，msg_id:', massResponse.data.msg_id);
-                return;
-              } else {
-                throw new Error(`群发失败: ${massResponse.data.errmsg || '未知错误'}`);
-              }
-            } else {
-              throw new Error(`发布失败: ${publishResponse.data.errmsg || '未知错误'}`);
-            }
-          } else if (response.data.errcode === 40007) {
-            // 如果media_id无效，重试
-            console.log('media_id无效，准备重试...');
-            thumbMediaId = null;
-            retryCount++;
-          } else if (response.data.errcode) {
-            throw new Error(`发布文章失败: ${response.data.errmsg}`);
-          } else {
-            throw new Error('发布文章失败：未知错误');
+          if (!draftResponse.data.media_id) {
+            throw new Error(`创建草稿失败: ${draftResponse.data.errmsg || '未知错误'}`);
           }
+
+          const draftMediaId = draftResponse.data.media_id;
+          console.log('草稿创建成功，media_id:', draftMediaId);
+
+          // 等待1秒确保草稿保存完成
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // 发布草稿
+          await this.publishDraft(draftMediaId);
+          console.log('文章发布流程完成');
+          return;
+
         } catch (error) {
-          console.error(`第${retryCount + 1}次尝试失败:`, error);
+          console.error(`第 ${retryCount + 1} 次尝试失败:`, error);
           retryCount++;
           if (retryCount >= maxRetries) {
             throw error;
           }
-          // 等待1秒后重试
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
-      }
-
-      if (!thumbMediaId) {
-        throw new Error('上传封面图片失败，已达到最大重试次数');
       }
     } catch (error) {
       console.error('发布文章失败:', error);
@@ -269,28 +220,44 @@ export class WeChatService {
       const publishResponse = await axios.post<WeChatResponse>(publishUrl, {
         media_id: mediaId
       });
-      
+   
       console.log('发布草稿响应:', publishResponse.data);
       if (publishResponse.data.errcode === 0 && publishResponse.data.publish_id) {
         console.log('文章提交发布成功，publish_id:', publishResponse.data.publish_id);
         
-        // 检查发布状态
-        console.log('正在检查发布状态...');
-        const statusUrl = `${this.baseUrl}/freepublish/get?access_token=${accessToken}`;
-        const statusResponse = await axios.post<WeChatResponse>(statusUrl, {
-          publish_id: publishResponse.data.publish_id
-        });
-        
-        console.log('发布状态响应:', statusResponse.data);
-        if (statusResponse.data.publish_status === 0) {
-          console.log('文章发布成功，可在公众号查看');
-          return;
-        } else {
-          console.log('文章状态:', this.getPublishStatus(statusResponse.data.publish_status));
-          if (statusResponse.data.fail_idx) {
-            throw new Error(`发布失败: ${statusResponse.data.fail_idx.join(', ')}`);
+        // 等待发布完成
+        let retryCount = 0;
+        const maxRetries = 10;
+        const retryInterval = 2000; // 2秒
+
+        while (retryCount < maxRetries) {
+          // 检查发布状态
+          console.log('正在检查发布状态...');
+          const statusUrl = `${this.baseUrl}/freepublish/get?access_token=${accessToken}`;
+          const statusResponse = await axios.post<WeChatResponse>(statusUrl, {
+            publish_id: publishResponse.data.publish_id
+          });
+          
+          console.log('发布状态响应:', statusResponse.data);
+          const publishStatus = statusResponse.data.publish_status;
+          console.log('文章状态:', this.getPublishStatus(publishStatus));
+
+          if (publishStatus === 0) {
+            console.log('文章发布成功，可在公众号查看');
+            return;
+          } else if (publishStatus > 1) { // 状态大于1表示发布失败
+            throw new Error(`发布失败: ${this.getPublishStatus(publishStatus)}`);
+          }
+
+          // 如果状态是1(待发布)，继续等待
+          retryCount++;
+          if (retryCount < maxRetries) {
+            console.log(`等待发布完成，第 ${retryCount} 次检查...`);
+            await new Promise(resolve => setTimeout(resolve, retryInterval));
           }
         }
+
+        throw new Error('发布超时，请在公众号后台检查发布状态');
       } else {
         throw new Error(`发布草稿失败: ${publishResponse.data.errmsg || '未知错误'}`);
       }

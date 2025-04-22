@@ -10,11 +10,17 @@ export interface NotionPage {
   url: string;
   title: string;
   lastEditedTime: string;
-  properties: Record<string, {
-    type: string;
-    rich_text?: RichTextItemResponse[];
-    title?: RichTextItemResponse[];
-  }>;
+  properties: {
+    [key: string]: {
+      type: string;
+      rich_text?: Array<{ plain_text: string }>;
+      title?: Array<{ plain_text: string }>;
+      select?: { name: string };
+      date?: { start: string };
+    };
+  };
+  publishStatus?: string;
+  publishTime?: string;
 }
 
 export interface NotionBlock {

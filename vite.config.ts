@@ -65,5 +65,13 @@ export default defineConfig({
   optimizeDeps: {
     include: ['vue'],
     exclude: ['electron']
+  },
+  css: {
+    postcss: {
+      plugins: [
+        require('tailwindcss'),
+        require('autoprefixer')
+      ]
+    }
   }
 }); 
