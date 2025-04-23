@@ -46,21 +46,77 @@ yarn dev
 
 ## 📝 使用说明
 
-1. 首次使用时，点击左侧导航栏的"配置"选项
-2. 填入您的 Notion API Key 和数据库 ID
-3. 填入微信公众号的 AppID 和 AppSecret
-4. 保存配置后，返回文章列表页面
-5. 点击"同步到微信"按钮即可发布文章
+### Notion 数据库设置
 
-## ⚙️ 配置说明
+1. 在 Notion 中创建一个新的数据库
+2. 数据库需要包含以下属性：
+   - `title`（标题）: 文章标题
+   - `PublishStatus`（选择器）: 发布状态，可选值：
+     - `draft`: 草稿
+     - `published`: 已发布
+   - `PublishTime`（日期）: 发布时间
+   - `Status`（状态）: 文章状态
+   - `Author`（文本）: 作者（可选）
+   - `Digest`（文本）: 文章摘要（可选）
 
-### Notion 配置
-- **API Key**: 在 [Notion Integrations](https://www.notion.so/my-integrations) 页面获取
-- **数据库 ID**: 从您的 Notion 数据库 URL 中获取
+### 配置步骤
 
-### 微信公众号配置
-- **AppID**: 在微信公众平台的开发配置中获取
-- **AppSecret**: 在微信公众平台的开发配置中获取
+1. 获取 Notion API Key：
+   - 访问 [Notion Integrations](https://www.notion.so/my-integrations)
+   - 点击 "New integration"
+   - 填写名称并创建
+   - 复制生成的 API Key
+
+2. 获取数据库 ID：
+   - 在浏览器中打开您的 Notion 数据库
+   - URL 中形如 `https://www.notion.so/xxx/yyy?v=zzz` 的 `yyy` 部分就是数据库 ID
+
+3. 配置微信公众号：
+   - 登录 [微信公众平台](https://mp.weixin.qq.com/)
+   - 进入"开发 > 基本配置"
+   - 获取 AppID 和 AppSecret
+
+4. 在应用中配置：
+   - 启动应用后点击左侧"配置"
+   - 填入上述获取的配置信息
+   - 点击保存
+
+### 使用流程
+
+1. 在 Notion 中编写文章
+2. 在应用中点击"刷新列表"获取最新文章
+3. 点击"同步到微信"将文章同步到公众号
+4. 在"同步状态"页面查看同步结果
+
+## ⚙️ 常见问题
+
+### 同步失败的可能原因
+
+1. Notion API 配置问题
+   - 确保 API Key 正确
+   - 确保已将 integration 添加到数据库的访问权限中
+
+2. 数据库格式问题
+   - 检查是否包含所有必需的属性
+   - 确保属性类型正确
+
+3. 微信公众号配置问题
+   - 验证 AppID 和 AppSecret 是否正确
+   - 检查公众号是否有发布文章的权限
+
+### 解决方案
+
+1. 配置问题
+   - 重新保存配置
+   - 检查配置文件是否正确保存
+
+2. 同步问题
+   - 查看同步状态页面的错误信息
+   - 检查文章格式是否符合要求
+
+3. 其他问题
+   - 重启应用
+   - 清除配置重新设置
 
 ## 🔧 开发指南
 
@@ -75,7 +131,11 @@ yarn build
 ```
 src/
 ├── main/          # Electron 主进程
+│   ├── services/  # 核心服务
+│   └── ipc/       # 进程间通信
 ├── renderer/      # 前端界面
+│   ├── components/# UI 组件
+│   └── styles/    # 样式文件
 └── shared/        # 共享类型和工具
 ```
 
