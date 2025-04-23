@@ -1,18 +1,11 @@
 import { app } from 'electron';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { promises as fs } from 'fs';
+import { join, dirname } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import { NotionConfig } from '../../shared/types/notion';
 import { WeChatConfig } from '../../shared/types/wechat';
 import { SyncConfig } from '../../shared/types/sync';
-import { join } from 'path';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { Config } from '../../shared/types/config';
-
-interface Config {
-  notion: NotionConfig;
-  wechat: WeChatConfig;
-  sync: SyncConfig;
-}
 
 export class ConfigService {
   private configPath: string;
@@ -45,7 +38,7 @@ export class ConfigService {
     } catch (error) {
       console.error('加载配置失败，使用默认配置:', error);
       // 确保配置文件存在
-      const configDir = path.dirname(this.configPath);
+      const configDir = dirname(this.configPath);
       if (!existsSync(configDir)) {
         mkdirSync(configDir, { recursive: true });
       }
@@ -125,7 +118,7 @@ export class ConfigService {
       console.log('配置已更新:', this.config);
       
       // 确保配置目录存在
-      const configDir = path.dirname(this.configPath);
+      const configDir = dirname(this.configPath);
       if (!existsSync(configDir)) {
         console.log('创建配置目录:', configDir);
         mkdirSync(configDir, { recursive: true });
@@ -208,53 +201,6 @@ export class ConfigService {
 
     if (errors.length > 0) {
       throw new Error(errors.join('\n'));
-    }
-  }
-
-  private loadConfig(): Config {
-    try {
-      if (existsSync(this.configPath)) {
-        const data = readFileSync(this.configPath, 'utf8');
-        return JSON.parse(data);
-      }
-    } catch (error) {
-      console.error('加载配置失败:', error);
-    }
-
-    return {
-      notion: {
-        apiKey: '',
-        databaseId: ''
-      },
-      wechat: {
-        appId: '',
-        appSecret: '',
-        accessToken: '',
-        tokenExpiresAt: 0
-      },
-      sync: {
-        autoSync: false,
-        syncInterval: 30
-      }
-    };
-  }
-
-  saveConfig(config: Config): void {
-    try {
-      // 验证配置
-      this.validateConfig(config);
-
-      // 清理数据库 ID
-      config.notion.databaseId = config.notion.databaseId.trim();
-
-      // 保存配置
-      writeFileSync(this.configPath, JSON.stringify(config, null, 2));
-      this.config = config;
-
-      console.log('配置保存成功');
-    } catch (error) {
-      console.error('保存配置失败:', error);
-      throw error;
     }
   }
 } 

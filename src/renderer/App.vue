@@ -54,8 +54,23 @@
 
       <!-- 文章列表页面 -->
       <div v-if="currentPage === 'articles'" class="space-y-6">
+        <!-- 配置未完成提示 -->
+        <div v-if="!notionConfig.apiKey || !notionConfig.databaseId" class="bg-[#212226] rounded-lg border border-[#2a2b2f] p-12 text-center">
+          <div class="w-16 h-16 mx-auto mb-4 bg-[#2a2b2f] rounded-full flex items-center justify-center">
+            <span v-html="getPageIcon('config')" class="text-gray-400 w-8 h-8"></span>
+          </div>
+          <h3 class="text-lg font-medium text-white">请先完成配置</h3>
+          <p class="mt-2 text-sm text-gray-400">您需要先设置 Notion API Key 和数据库 ID 才能加载文章</p>
+          <button 
+            @click="currentPage = 'config'"
+            class="mt-4 px-4 py-2 bg-[#2b7df7] text-white rounded-lg hover:bg-[#1a6fe6] transition-colors duration-200"
+          >
+            去配置
+          </button>
+        </div>
+
         <!-- 加载状态 -->
-        <div v-if="loading" class="flex items-center justify-center py-12">
+        <div v-else-if="loading" class="flex items-center justify-center py-12">
           <span v-html="getLoadingIcon()" class="text-[#2b7df7]"></span>
         </div>
 
@@ -236,96 +251,66 @@
       </div>
 
       <!-- 配置页面 -->
-      <div v-if="currentPage === 'config'" class="max-w-2xl">
-        <form @submit.prevent="saveConfig" class="space-y-8">
-          <!-- Notion 配置 -->
-          <div class="bg-[#212226] rounded-xl border border-[#2a2b2f] p-6">
-            <h3 class="text-lg font-medium text-white mb-4">Notion 配置</h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300">API Key</label>
-                <input
-                  type="password"
-                  v-model="config.notionApiKey"
-                  class="mt-1 block w-full px-3 py-2 bg-[#2a2b2f] border border-[#3a3b3f] rounded-lg focus:ring-2 focus:ring-[#2b7df7] focus:border-[#2b7df7] transition-colors duration-200 text-white placeholder-gray-500"
-                  placeholder="输入你的 Notion API Key"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300">Database ID</label>
-                <input
-                  type="text"
-                  v-model="config.databaseId"
-                  class="mt-1 block w-full px-3 py-2 bg-[#2a2b2f] border border-[#3a3b3f] rounded-lg focus:ring-2 focus:ring-[#2b7df7] focus:border-[#2b7df7] transition-colors duration-200 text-white placeholder-gray-500"
-                  placeholder="输入你的 Database ID"
-                />
-              </div>
+      <div v-if="currentPage === 'config'" class="space-y-8">
+        <!-- Notion 配置 -->
+        <div class="bg-[#212226] rounded-lg p-6">
+          <h2 class="text-xl font-semibold text-white mb-4">Notion 配置</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">API Key</label>
+              <input 
+                v-model="notionConfig.apiKey"
+                type="password"
+                class="w-full px-4 py-2 bg-[#2a2b2f] border border-[#3a3b3f] rounded-lg text-white focus:outline-none focus:border-[#2b7df7]"
+                placeholder="输入您的 Notion API Key"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">数据库 ID</label>
+              <input 
+                v-model="notionConfig.databaseId"
+                type="text"
+                class="w-full px-4 py-2 bg-[#2a2b2f] border border-[#3a3b3f] rounded-lg text-white focus:outline-none focus:border-[#2b7df7]"
+                placeholder="输入您的 Notion 数据库 ID"
+              />
             </div>
           </div>
+        </div>
 
-          <!-- 微信配置 -->
-          <div class="bg-[#212226] rounded-xl border border-[#2a2b2f] p-6">
-            <h3 class="text-lg font-medium text-white mb-4">微信公众号配置</h3>
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300">AppID</label>
-                <input
-                  type="text"
-                  v-model="config.wechatAppId"
-                  class="mt-1 block w-full px-3 py-2 bg-[#2a2b2f] border border-[#3a3b3f] rounded-lg focus:ring-2 focus:ring-[#2b7df7] focus:border-[#2b7df7] transition-colors duration-200 text-white placeholder-gray-500"
-                  placeholder="输入你的 AppID"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300">AppSecret</label>
-                <input
-                  type="password"
-                  v-model="config.wechatAppSecret"
-                  class="mt-1 block w-full px-3 py-2 bg-[#2a2b2f] border border-[#3a3b3f] rounded-lg focus:ring-2 focus:ring-[#2b7df7] focus:border-[#2b7df7] transition-colors duration-200 text-white placeholder-gray-500"
-                  placeholder="输入你的 AppSecret"
-                />
-              </div>
+        <!-- 微信配置 -->
+        <div class="bg-[#212226] rounded-lg p-6">
+          <h2 class="text-xl font-semibold text-white mb-4">微信配置</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">AppID</label>
+              <input 
+                v-model="wechatConfig.appId"
+                type="text"
+                class="w-full px-4 py-2 bg-[#2a2b2f] border border-[#3a3b3f] rounded-lg text-white focus:outline-none focus:border-[#2b7df7]"
+                placeholder="输入您的微信 AppID"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1">AppSecret</label>
+              <input 
+                v-model="wechatConfig.appSecret"
+                type="password"
+                class="w-full px-4 py-2 bg-[#2a2b2f] border border-[#3a3b3f] rounded-lg text-white focus:outline-none focus:border-[#2b7df7]"
+                placeholder="输入您的微信 AppSecret"
+              />
             </div>
           </div>
+        </div>
 
-          <!-- 同步设置 -->
-          <div class="bg-[#212226] rounded-xl border border-[#2a2b2f] p-6">
-            <h3 class="text-lg font-medium text-white mb-4">同步设置</h3>
-            <div class="space-y-4">
-              <div class="flex items-center">
-                <input
-                  type="checkbox"
-                  v-model="config.autoSync"
-                  class="h-4 w-4 text-[#2b7df7] focus:ring-[#2b7df7] border-[#3a3b3f] rounded transition-colors duration-200 bg-[#2a2b2f]"
-                />
-                <label class="ml-2 block text-sm text-gray-300">
-                  启用自动同步
-                </label>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300">同步间隔（分钟）</label>
-                <input
-                  type="number"
-                  v-model="config.syncInterval"
-                  min="1"
-                  class="mt-1 block w-32 px-3 py-2 bg-[#2a2b2f] border border-[#3a3b3f] rounded-lg focus:ring-2 focus:ring-[#2b7df7] focus:border-[#2b7df7] transition-colors duration-200 text-white"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- 保存按钮 -->
-          <div class="flex justify-end">
-            <button
-              type="submit"
-              :disabled="saving"
-              class="inline-flex items-center px-6 py-3 bg-[#2b7df7] text-white rounded-lg hover:bg-[#2468d9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2b7df7] transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed"
-            >
-              <span v-html="saving ? getLoadingIcon() : getSendIcon()" class="mr-2"></span>
-              {{ saving ? '保存中...' : '保存配置' }}
-            </button>
-          </div>
-        </form>
+        <!-- 保存按钮 -->
+        <div class="flex justify-end">
+          <button 
+            @click="saveConfig"
+            class="px-6 py-2 bg-[#2b7df7] text-white rounded-lg hover:bg-[#1a6fe6] transition-colors duration-200"
+          >
+            保存配置
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -333,6 +318,20 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
+
+// 声明 window.electron 类型
+declare global {
+  interface Window {
+    electron: {
+      getConfig: () => Promise<any>;
+      saveConfig: (config: any) => Promise<void>;
+      getNotionPages: () => Promise<any[]>;
+      syncArticle: (pageId: string) => Promise<void>;
+      getSyncStatus: (articleId: string) => Promise<any>;
+      onSyncStateChanged: (callback: (state: any) => void) => void;
+    };
+  }
+}
 
 // 页面状态
 const currentPage = ref('articles');
@@ -355,6 +354,17 @@ const syncStates = ref<Record<string, any>>({});
 
 // 添加新的状态和方法
 const selectedSync = ref(null);
+
+// 配置相关
+const notionConfig = ref({
+  apiKey: '',
+  databaseId: ''
+})
+
+const wechatConfig = ref({
+  appId: '',
+  appSecret: ''
+})
 
 // 工具函数
 const getPageTitle = (page: string) => {
@@ -447,10 +457,25 @@ const getArticleTitle = (articleId: string) => {
 // 加载配置
 const loadConfig = async () => {
   try {
-    const savedConfig = await window.electron.getConfig();
-    Object.assign(config, savedConfig);
-  } catch (err) {
-    console.error('加载配置失败:', err);
+    console.log('正在加载配置...');
+    const config = await window.electron.getConfig();
+    console.log('加载到的配置:', config);
+    
+    if (config && config.notion) {
+      notionConfig.value = {
+        apiKey: config.notion.apiKey || '',
+        databaseId: config.notion.databaseId || ''
+      };
+    }
+    
+    if (config && config.wechat) {
+      wechatConfig.value = {
+        appId: config.wechat.appId || '',
+        appSecret: config.wechat.appSecret || ''
+      };
+    }
+  } catch (error) {
+    console.error('加载配置失败:', error);
   }
 };
 
@@ -473,24 +498,28 @@ const showNotification = (message: string, type: 'success' | 'error' = 'success'
   }, 3000);
 };
 
-// 修改保存配置函数
+// 保存配置
 const saveConfig = async () => {
   saving.value = true;
   try {
-    await window.electron.saveConfig({
+    const configToSave = {
       notion: {
-        apiKey: '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',
-        databaseId: '1d826a495c9480a1b7bedf4c5e60c7e6'
+        apiKey: notionConfig.value.apiKey,
+        databaseId: notionConfig.value.databaseId
       },
       wechat: {
-        appId: 'wx374ec189a774d946',
-        appSecret: 'd801d333ed3c55b46d79072c80bb8837'
+        appId: wechatConfig.value.appId,
+        appSecret: wechatConfig.value.appSecret
       },
       sync: {
-        autoSync: config.autoSync,
+        autoSync: false,
         syncInterval: 30
       }
-    });
+    };
+
+    console.log('正在保存配置:', configToSave);
+    await window.electron.saveConfig(configToSave);
+    console.log('配置保存成功');
 
     showNotification('配置保存成功！');
     
@@ -513,6 +542,11 @@ const saveConfig = async () => {
 
 // 加载文章列表
 const loadArticles = async () => {
+  // 如果配置未完成，直接返回
+  if (!notionConfig.value.apiKey || !notionConfig.value.databaseId) {
+    return;
+  }
+
   loading.value = true;
   error.value = '';
   try {

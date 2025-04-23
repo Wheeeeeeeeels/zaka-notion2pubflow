@@ -97,10 +97,10 @@ export class SyncService {
         throw new Error('无法获取文章属性，请检查数据库 ID 是否正确');
       }
 
-      // 检查文章是否已发布
+      // 检查文章发布状态并记录日志
       const publishStatus = page.properties.PublishStatus?.select?.name;
       if (publishStatus === 'published') {
-        throw new Error('该文章已发布，无需重复发布');
+        console.log('文章已发布，将进行重新发布');
       }
 
       // 获取文章内容

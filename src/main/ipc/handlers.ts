@@ -60,32 +60,33 @@ export function setupIpcHandlers(
     try {
       console.log('收到配置保存请求:', JSON.stringify(config, null, 2));
       
-      // 处理配置对象格式
-      const configToSave = {
+      // 直接使用传入的配置对象
+      const configToSave: Config = {
         notion: {
-          apiKey: config.apiKey || config.notion?.apiKey || '',
-          databaseId: config.databaseId || config.notion?.databaseId || ''
+          apiKey: config.notion.apiKey,
+          databaseId: config.notion.databaseId
         },
         wechat: {
-          appId: config.wechat?.appId || 'wx374ec189a774d946',
-          appSecret: config.wechat?.appSecret || 'd801d333ed3c55b46d79072c80bb8837'
+          appId: config.wechat.appId,
+          appSecret: config.wechat.appSecret
         },
-        sync: {
-          autoSync: config.sync?.autoSync || false,
-          syncInterval: config.sync?.syncInterval || 30
+        sync: config.sync || {
+          autoSync: false,
+          syncInterval: 30
         }
       };
       
       // 验证配置
       if (!configToSave.notion.apiKey || !configToSave.notion.databaseId) {
-        console.error('配置验证失败: API Key 或数据库 ID 为空');
-        console.error('notion:', configToSave.notion);
-        throw new Error('API Key 和数据库 ID 不能为空');
+        throw new Error('Notion API Key 和数据库 ID 不能为空');
+      }
+      
+      if (!configToSave.wechat.appId || !configToSave.wechat.appSecret) {
+        throw new Error('微信 AppID 和 AppSecret 不能为空');
       }
       
       // 保存配置
       console.log('正在保存配置到文件...');
-      console.log('处理后的配置:', JSON.stringify(configToSave, null, 2));
       await configService.saveConfig(configToSave);
       console.log('配置已保存到文件');
       
