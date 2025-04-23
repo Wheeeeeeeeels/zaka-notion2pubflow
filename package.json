@@ -31,7 +31,7 @@
     "sync",
     "electron"
   ],
-  "author": "",
+  "author": "Wheeeeeeeeels <wheels.cs.work@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "@headlessui/react": "^2.2.2",
